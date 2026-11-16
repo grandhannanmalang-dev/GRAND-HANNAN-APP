@@ -80,6 +80,11 @@ export const Payments: React.FC = () => {
     return { pendingPaymentsCount: pending, verifiedPaymentsCount: verified };
   }, [payments]);
 
+  const residentMap = useMemo(
+    () => new Map(residents.map((r) => [r.id, r])),
+    [residents]
+  );
+
   const filteredPayments = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
     return payments
@@ -95,7 +100,7 @@ export const Payments: React.FC = () => {
         }
 
         if (term) {
-          const resident = residents.find(r => r.id === p.residentId);
+          const resident = residentMap.get(p.residentId);
           const residentName = resident?.name.toLowerCase() || '';
           const residentHouse = resident?.houseNumber.toLowerCase() || '';
           const residentBlock = resident?.block?.toLowerCase() || '';
@@ -112,7 +117,7 @@ export const Payments: React.FC = () => {
         return true;
       })
       .sort((a, b) => safeTimeMs(b.date) - safeTimeMs(a.date));
-  }, [payments, residents, filterMonth, filterYear, filterStatus, searchTerm]);
+  }, [payments, residentMap, filterMonth, filterYear, filterStatus, searchTerm]);
 
   const activeFilterSummary = useMemo(() => {
     const statusLabel =
@@ -157,7 +162,7 @@ export const Payments: React.FC = () => {
   // Change payment status cleanly without triggering external messaging
   const handleStatusChange = async (payment: Payment, newStatus: 'verified' | 'tertunda' | 'pending') => {
     setIsProcessing(true);
-    const resident = residents.find(r => r.id === payment.residentId) || null;
+    const resident = residentMap.get(payment.residentId) || null;
 
     try {
       await updatePayment(payment.id, { status: newStatus });
@@ -235,7 +240,7 @@ export const Payments: React.FC = () => {
 
       await addPayment(newPayment);
       
-      const targetResident = residents.find(r => r.id === formData.residentId) || null;
+      const targetResident = residentMap.get(formData.residentId) || null;
 
       if (formData.status === 'tertunda') {
         await addNotification(
@@ -279,15 +284,20 @@ export const Payments: React.FC = () => {
     }
   };
 
-  const getUnpaidResidents = () => {
-    return residents.filter(r => {
-      const existing = payments.find(
-        p => p.residentId === r.id && Number(p.month) === Number(formData.month) && Number(p.year) === Number(formData.year)
-      );
-      if (!existing) return true;
-      return normalizePaymentStatus(existing) === 'tertunda';
-    });
-  };
+  const unpaidResidents = useMemo(() => {
+    if (!isModalOpen) return [];
+    const targetMonth = Number(formData.month);
+    const targetYear = Number(formData.year);
+    const paidOrPendingIds = new Set<string>();
+    for (const p of payments) {
+      if (Number(p.month) === targetMonth && Number(p.year) === targetYear) {
+        if (normalizePaymentStatus(p) !== 'tertunda') {
+          paidOrPendingIds.add(p.residentId);
+        }
+      }
+    }
+    return residents.filter((r) => !paidOrPendingIds.has(r.id));
+  }, [isModalOpen, residents, payments, formData.month, formData.year]);
 
   return (
     <div className="space-y-5">
@@ -299,25 +309,25 @@ export const Payments: React.FC = () => {
           </p>
         </div>
         {currentUser?.role === 'admin' && (
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsExportModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 bg-white dark:bg-[#18263d] hover:bg-slate-50 dark:hover:bg-[#1e2f4b] text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-2xl font-bold transition-colors shadow-2xs cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
-            >
-              <Download className="w-4 h-4 stroke-[2] text-[#0088f8] dark:text-[#60b5ff]" />
-              <span>Ekspor CSV</span>
-            </button>
+          <div className="flex flex-nowrap items-center gap-2 sm:gap-2.5 shrink-0 max-w-full">
             <button 
               type="button"
               onClick={() => {
                 setModalError('');
                 setIsModalOpen(true);
               }}
-              className="inline-flex items-center justify-center gap-2 bg-[#0088f8] hover:bg-[#0070e0] text-white px-5 py-2.5 rounded-2xl font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-[#0088f8] hover:bg-[#0070e0] text-white px-3.5 sm:px-5 py-2.5 rounded-2xl font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
             >
-              <Plus className="w-4 h-4 icon-3d-glyph" />
+              <Plus className="w-4 h-4 icon-3d-glyph shrink-0" />
               <span>Catat Pembayaran</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-white dark:bg-[#18263d] hover:bg-slate-50 dark:hover:bg-[#1e2f4b] text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-700 px-3.5 sm:px-4 py-2.5 rounded-2xl font-bold transition-colors shadow-2xs cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
+            >
+              <Download className="w-4 h-4 stroke-[2] text-[#0088f8] dark:text-[#60b5ff] shrink-0" />
+              <span>Ekspor Data</span>
             </button>
           </div>
         )}
@@ -526,7 +536,7 @@ export const Payments: React.FC = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredPayments.length > 0 ? (
                 filteredPayments.map((payment) => {
-                  const resident = residents.find(r => r.id === payment.residentId);
+                  const resident = residentMap.get(payment.residentId);
                   const normalizedStatus = normalizePaymentStatus(payment);
                   const isTertunda = normalizedStatus === 'tertunda';
                   const isPending = normalizedStatus === 'pending';
@@ -535,7 +545,7 @@ export const Payments: React.FC = () => {
                   return (
                     <tr 
                       key={payment.id} 
-                      className={`transition-colors ${
+                      className={`perf-table-row transition-colors ${
                         isTertunda 
                           ? 'bg-rose-50/20 dark:bg-rose-950/20 hover:bg-rose-50/40 dark:hover:bg-rose-950/35' 
                           : isPending 
@@ -551,6 +561,8 @@ export const Payments: React.FC = () => {
                                 src={resident.photoUrl}
                                 alt={resident.name}
                                 referrerPolicy="no-referrer"
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -672,7 +684,7 @@ export const Payments: React.FC = () => {
         <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
           {filteredPayments.length > 0 ? (
             filteredPayments.map(payment => {
-              const resident = residents.find(r => r.id === payment.residentId);
+              const resident = residentMap.get(payment.residentId);
               const normalizedStatus = normalizePaymentStatus(payment);
               const isTertunda = normalizedStatus === 'tertunda';
               const isPending = normalizedStatus === 'pending';
@@ -680,7 +692,7 @@ export const Payments: React.FC = () => {
               return (
                 <div 
                   key={payment.id} 
-                  className={`p-4 flex flex-col gap-3 transition-colors ${
+                  className={`perf-list-item p-4 flex flex-col gap-3 transition-colors ${
                     isTertunda ? 'bg-amber-50/20 dark:bg-amber-950/20' : isPending ? 'bg-amber-50/30 dark:bg-[#152843]/40' : 'hover:bg-slate-50/50 dark:hover:bg-[#18263d]/60'
                   }`}
                 >
@@ -692,6 +704,8 @@ export const Payments: React.FC = () => {
                             src={resident.photoUrl}
                             alt={resident.name}
                             referrerPolicy="no-referrer"
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -819,6 +833,8 @@ export const Payments: React.FC = () => {
                 <img 
                   src={selectedProof.proofOfPayment} 
                   alt="Bukti Transfer" 
+                  loading="lazy"
+                  decoding="async"
                   className="max-w-full max-h-[60vh] object-contain rounded-2xl shadow-md border border-slate-200 dark:border-slate-700"
                 />
               ) : (
@@ -944,7 +960,7 @@ export const Payments: React.FC = () => {
                   value={formData.residentId}
                   onChange={(e) => {
                     const rId = e.target.value;
-                    const res = residents.find(r => r.id === rId);
+                    const res = residentMap.get(rId);
                     setFormData({
                       ...formData, 
                       residentId: rId,
@@ -954,13 +970,13 @@ export const Payments: React.FC = () => {
                   className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0088f8]/20 focus:border-[#0088f8] bg-slate-50 dark:bg-[#18263d] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#1f304d] transition-colors text-sm appearance-none min-h-[44px]"
                 >
                   <option value="" disabled>-- Pilih Warga (Belum Bayar) --</option>
-                  {getUnpaidResidents().map(r => (
+                  {unpaidResidents.map(r => (
                     <option key={r.id} value={r.id}>
                       {r.name} - {r.propertyType} {r.block ? `Blok ${r.block}` : ''} No. {r.houseNumber} {r.phone ? `(${r.phone})` : ''}
                     </option>
                   ))}
                 </select>
-                {getUnpaidResidents().length === 0 && (
+                {unpaidResidents.length === 0 && (
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-medium">Semua warga sudah membayar untuk periode ini.</p>
                 )}
               </div>
@@ -1079,8 +1095,8 @@ export const Payments: React.FC = () => {
         mode="scoped"
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        title="Ekspor Data Iuran ke CSV"
-        subtitle="Pilih cakupan catatan pembayaran yang ingin diunduh"
+        title="Ekspor Data"
+        subtitle="Iuran warga · pilih cakupan data untuk diunduh"
         filteredOption={{
           label: 'Sesuai Filter Aktif',
           description: activeFilterSummary,

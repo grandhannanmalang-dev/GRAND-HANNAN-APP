@@ -246,11 +246,11 @@ export const Reports: React.FC = () => {
           </p>
         </div>
         {currentUser?.role === 'admin' && (
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex flex-nowrap items-center gap-2 sm:gap-2.5 shrink-0 max-w-full">
             <button
               type="button"
               onClick={openExpenseModal}
-              className="inline-flex items-center justify-center gap-2 bg-[#800020] hover:bg-[#660019] dark:bg-[#9f1239] dark:hover:bg-[#881337] text-white px-5 py-2.5 rounded-2xl font-bold transition-all shadow-md shadow-[#800020]/25 active:scale-95 cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-[#800020] hover:bg-[#660019] dark:bg-[#9f1239] dark:hover:bg-[#881337] text-white px-3.5 sm:px-5 py-2.5 rounded-2xl font-bold transition-all shadow-md shadow-[#800020]/25 active:scale-95 cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
             >
               <Plus className="w-[1em] h-[1em] stroke-[2.5] icon-3d-glyph shrink-0" />
               <span>Catat Pengeluaran</span>
@@ -258,10 +258,10 @@ export const Reports: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsExportModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 bg-white dark:bg-[#18263d] hover:bg-slate-50 dark:hover:bg-[#1e2f4b] text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-2xl font-bold transition-colors shadow-2xs cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-white dark:bg-[#18263d] hover:bg-slate-50 dark:hover:bg-[#1e2f4b] text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-700 px-3.5 sm:px-4 py-2.5 rounded-2xl font-bold transition-colors shadow-2xs cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
             >
-              <Download className="w-4 h-4 stroke-[2] text-[#0088f8] dark:text-[#60b5ff]" />
-              <span>Ekspor Laporan</span>
+              <Download className="w-4 h-4 stroke-[2] text-[#0088f8] dark:text-[#60b5ff] shrink-0" />
+              <span>Ekspor Data</span>
             </button>
           </div>
         )}
@@ -381,7 +381,7 @@ export const Reports: React.FC = () => {
                 sortedExpenses.map((expense) => (
                     <tr
                       key={expense.id}
-                      className="hover:bg-slate-50/50 dark:hover:bg-[#18263d]/70 transition-colors"
+                      className="perf-table-row hover:bg-slate-50/50 dark:hover:bg-[#18263d]/70 transition-colors"
                     >
                       <td className="px-5 sm:px-6 py-4 whitespace-nowrap">
                         <div className="text-slate-900 dark:text-slate-100 font-medium text-sm">
@@ -533,6 +533,8 @@ export const Reports: React.FC = () => {
                       src={expenseForm.proofPhoto}
                       alt="Pratinjau bukti pengeluaran"
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
                       className="w-full max-h-44 object-contain rounded-xl bg-white dark:bg-[#0b1220] border border-slate-200/80 dark:border-slate-800"
                     />
                     <div className="flex items-center justify-between gap-2">
@@ -667,6 +669,8 @@ export const Reports: React.FC = () => {
                     src={selectedExpenseProof.proofPhoto}
                     alt={`Bukti pengeluaran: ${selectedExpenseProof.description}`}
                     referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full max-h-[55vh] object-contain rounded-xl mx-auto"
                   />
                 </div>
@@ -725,8 +729,8 @@ export const Reports: React.FC = () => {
         mode="hub"
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        title="Ekspor Arsip Laporan CSV"
-        subtitle="Unduh data keuangan dan warga untuk pengarsipan eksternal"
+        title="Ekspor Data"
+        subtitle="Arsip keuangan & warga · pilih jenis dan cakupan data"
         datasets={[
           {
             id: 'payments',

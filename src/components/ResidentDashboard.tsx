@@ -810,6 +810,7 @@ export const ResidentDashboard: React.FC = () => {
                   <img
                     src={capturedImageDataUrl}
                     alt="Hasil foto kamera"
+                    decoding="async"
                     className="w-full h-full object-contain"
                   />
                 ) : cameraError ? (
@@ -924,6 +925,8 @@ export const ResidentDashboard: React.FC = () => {
               <img
                 src={previewProof}
                 alt="Bukti Transfer"
+                loading="lazy"
+                decoding="async"
                 className="max-h-[60vh] max-w-full rounded-2xl object-contain shadow-sm border border-slate-200 dark:border-slate-700"
               />
             </div>

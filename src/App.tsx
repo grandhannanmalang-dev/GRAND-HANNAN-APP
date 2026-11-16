@@ -1,17 +1,28 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MotionConfig, motion, useReducedMotion } from 'motion/react';
 import { AppProvider, useAppContext } from './AppContext';
 import { ThemeProvider } from './ThemeContext';
 import { Sidebar, ViewType } from './components/Sidebar';
 import { Header } from './components/Header';
-import { Dashboard } from './components/Dashboard';
-import { ResidentDashboard } from './components/ResidentDashboard';
-import { Residents } from './components/Residents';
-import { Payments } from './components/Payments';
-import { Reports } from './components/Reports';
-import { Settings } from './components/Settings';
-import { Login } from './components/Login';
 import { ErrorBoundary } from './components/ErrorBoundary';
+
+const loadLogin = () => import('./components/Login');
+const loadDashboard = () => import('./components/Dashboard');
+const loadResidentDashboard = () => import('./components/ResidentDashboard');
+const loadResidents = () => import('./components/Residents');
+const loadPayments = () => import('./components/Payments');
+const loadReports = () => import('./components/Reports');
+const loadSettings = () => import('./components/Settings');
+
+const Login = lazy(() => loadLogin().then((m) => ({ default: m.Login })));
+const Dashboard = lazy(() => loadDashboard().then((m) => ({ default: m.Dashboard })));
+const ResidentDashboard = lazy(() =>
+  loadResidentDashboard().then((m) => ({ default: m.ResidentDashboard }))
+);
+const Residents = lazy(() => loadResidents().then((m) => ({ default: m.Residents })));
+const Payments = lazy(() => loadPayments().then((m) => ({ default: m.Payments })));
+const Reports = lazy(() => loadReports().then((m) => ({ default: m.Reports })));
+const Settings = lazy(() => loadSettings().then((m) => ({ default: m.Settings })));
 import {
   Home,
   Users,
@@ -27,6 +38,39 @@ import {
 const VALID_VIEWS: ViewType[] = ['dashboard', 'residents', 'payments', 'reports', 'settings'];
 
 const FADE_EASE = [0.16, 1, 0.3, 1] as const;
+
+const prefetchViewChunk = (view: ViewType, role?: 'admin' | 'resident') => {
+  switch (view) {
+    case 'dashboard':
+      void loadDashboard();
+      break;
+    case 'residents':
+      void loadResidents();
+      break;
+    case 'payments':
+      if (role === 'resident') {
+        void loadResidentDashboard();
+      } else {
+        void loadPayments();
+      }
+      break;
+    case 'reports':
+      void loadReports();
+      break;
+    case 'settings':
+      void loadSettings();
+      break;
+  }
+};
+
+const PageLoaderFallback: React.FC = () => (
+  <div className="min-h-[260px] w-full flex items-center justify-center py-12">
+    <div className="flex flex-col items-center gap-2.5">
+      <div className="w-8 h-8 border-3 border-[#0088f8] border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Memuat tampilan...</span>
+    </div>
+  </div>
+);
 
 function getInitialViewFromUrl(): ViewType {
   if (typeof window === 'undefined') return 'dashboard';
@@ -62,6 +106,37 @@ function MainApp() {
   const handleChangeView = useCallback((nextView: ViewType) => {
     setCurrentView((prev) => (prev === nextView ? prev : nextView));
   }, []);
+
+  const handlePrefetchView = useCallback(
+    (view: ViewType) => {
+      prefetchViewChunk(view, currentUser?.role);
+    },
+    [currentUser?.role]
+  );
+
+  useEffect(() => {
+    if (!currentUser || !hasCloudHydrated || typeof window === 'undefined') return;
+    const warmAllViews = () => {
+      prefetchViewChunk('dashboard', currentUser.role);
+      prefetchViewChunk('residents', currentUser.role);
+      prefetchViewChunk('payments', currentUser.role);
+      prefetchViewChunk('reports', currentUser.role);
+      prefetchViewChunk('settings', currentUser.role);
+    };
+
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (typeof win.requestIdleCallback === 'function') {
+      const idleId = win.requestIdleCallback(warmAllViews, { timeout: 1500 });
+      return () => win.cancelIdleCallback?.(idleId);
+    }
+
+    const timerId = window.setTimeout(warmAllViews, 700);
+    return () => window.clearTimeout(timerId);
+  }, [currentUser, hasCloudHydrated]);
 
   useEffect(() => {
     const nextUid = currentUser?.uid ?? null;
@@ -104,7 +179,17 @@ function MainApp() {
   }
 
   if (!currentUser) {
-    return <Login />;
+    return (
+      <Suspense
+        fallback={
+          <div className="min-h-dvh w-full bg-[#edf5fc] dark:bg-[#0b1220] flex items-center justify-center transition-colors">
+            <div className="w-10 h-10 border-4 border-[#0088f8] border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <Login />
+      </Suspense>
+    );
   }
 
   if (!hasCloudHydrated && isHydratingCloud) {
@@ -207,6 +292,7 @@ function MainApp() {
       <Sidebar
         currentView={currentView}
         onChangeView={handleChangeView}
+        onPrefetchView={handlePrefetchView}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
@@ -270,7 +356,9 @@ function MainApp() {
                 }}
                 className="w-full"
               >
-                {renderView()}
+                <Suspense fallback={<PageLoaderFallback />}>
+                  {renderView()}
+                </Suspense>
               </motion.div>
             </ErrorBoundary>
           </div>
@@ -334,6 +422,8 @@ function MainApp() {
                 <button
                   key={item.id}
                   type="button"
+                  onMouseEnter={() => handlePrefetchView(item.id)}
+                  onFocus={() => handlePrefetchView(item.id)}
                   onClick={() => handleChangeView(item.id)}
                   title={item.title}
                   aria-current={isActive ? 'page' : undefined}

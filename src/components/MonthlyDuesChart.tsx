@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { motion, LayoutGroup, useReducedMotion } from 'motion/react';
 import { BarChart3, Calendar } from 'lucide-react';
 import {
@@ -62,7 +62,7 @@ const formatCompactRupiah = (value: number): string => {
   return `Rp${value}`;
 };
 
-const CustomChartTooltip: React.FC<ChartTooltipProps> = ({ active, payload, isDark }) => {
+const CustomChartTooltip: React.FC<ChartTooltipProps> = memo(({ active, payload, isDark }) => {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0]?.payload;
   if (!point) return null;
@@ -106,9 +106,10 @@ const CustomChartTooltip: React.FC<ChartTooltipProps> = ({ active, payload, isDa
       </div>
     </div>
   );
-};
+});
+CustomChartTooltip.displayName = 'CustomChartTooltip';
 
-export const MonthlyDuesChart: React.FC<MonthlyDuesChartProps> = ({
+export const MonthlyDuesChart: React.FC<MonthlyDuesChartProps> = memo(({
   payments,
   residents,
   isDark,
@@ -131,19 +132,27 @@ export const MonthlyDuesChart: React.FC<MonthlyDuesChartProps> = ({
     [residents]
   );
 
-  const verifiedPayments = useMemo(
-    () => payments.filter((p) => normalizePaymentStatus(p) === 'verified'),
-    [payments]
-  );
+  const groupedByMonthYear = useMemo(() => {
+    const map = new Map<string, { totalMasuk: number; paidResidents: Set<string> }>();
+    for (const p of payments) {
+      if (normalizePaymentStatus(p) !== 'verified') continue;
+      const key = `${Number(p.year)}-${Number(p.month)}`;
+      let bucket = map.get(key);
+      if (!bucket) {
+        bucket = { totalMasuk: 0, paidResidents: new Set<string>() };
+        map.set(key, bucket);
+      }
+      bucket.totalMasuk += Number(p.amount || 0);
+      bucket.paidResidents.add(p.residentId);
+    }
+    return map;
+  }, [payments]);
 
   const chartData: MonthlyDuesPoint[] = useMemo(() => {
     const buildPoint = (month: number, year: number, includeYearInShort: boolean): MonthlyDuesPoint => {
-      const monthPayments = verifiedPayments.filter(
-        (p) => Number(p.month) === month && Number(p.year) === year
-      );
-      const totalMasuk = monthPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-      const paidResidents = new Set(monthPayments.map((p) => p.residentId));
-      const paidCount = paidResidents.size;
+      const bucket = groupedByMonthYear.get(`${year}-${month}`);
+      const totalMasuk = bucket ? bucket.totalMasuk : 0;
+      const paidCount = bucket ? bucket.paidResidents.size : 0;
       const achievementPct =
         expectedMonthlyTarget > 0
           ? Math.round((totalMasuk / expectedMonthlyTarget) * 100)
@@ -181,7 +190,7 @@ export const MonthlyDuesChart: React.FC<MonthlyDuesChartProps> = ({
 
     return Array.from({ length: 12 }, (_, idx) => buildPoint(idx + 1, activeYear, false));
   }, [
-    verifiedPayments,
+    groupedByMonthYear,
     expectedMonthlyTarget,
     residents.length,
     viewRange,
@@ -213,6 +222,17 @@ export const MonthlyDuesChart: React.FC<MonthlyDuesChartProps> = ({
   const primaryBarColor = isDark ? '#38bdf8' : '#0088f8';
   const currentMonthBarColor = isDark ? '#60a5fa' : '#0070e0';
   const targetBarColor = isDark ? '#334155' : '#cbd5e1';
+
+  const renderTooltipContent = useCallback(
+    (props: { active?: boolean; payload?: readonly unknown[] }) => (
+      <CustomChartTooltip
+        active={props.active}
+        payload={props.payload as ChartTooltipProps['payload']}
+        isDark={isDark}
+      />
+    ),
+    [isDark]
+  );
 
   return (
     <section
@@ -401,13 +421,7 @@ export const MonthlyDuesChart: React.FC<MonthlyDuesChartProps> = ({
             />
             <Tooltip
               cursor={{ fill: isDark ? '#18263d' : '#f1f5f9', radius: 8 }}
-              content={(props) => (
-                <CustomChartTooltip
-                  active={props.active}
-                  payload={props.payload as ChartTooltipProps['payload']}
-                  isDark={isDark}
-                />
-              )}
+              content={renderTooltipContent}
             />
             <Legend
               wrapperStyle={{
@@ -446,4 +460,5 @@ export const MonthlyDuesChart: React.FC<MonthlyDuesChartProps> = ({
       </motion.div>
     </section>
   );
-};
+});
+MonthlyDuesChart.displayName = 'MonthlyDuesChart';

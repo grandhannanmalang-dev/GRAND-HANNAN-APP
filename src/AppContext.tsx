@@ -211,10 +211,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const hasCloudHydratedRef = useRef<boolean>(false);
   const localPasswordUpdateAtRef = useRef<string | null>(null);
   const currentUserUidRef = useRef<string | null>(null);
+  const currentUserRef = useRef<AppUser | null>(null);
+  const residentsRef = useRef<Resident[]>([]);
+  const rawNotificationsRef = useRef<AppNotification[]>([]);
+  const visibleCloudNotificationsRef = useRef<AppNotification[]>([]);
+  const isOnlineRef = useRef<boolean>(isOnline);
 
   useEffect(() => {
     currentUserUidRef.current = currentUser?.uid ?? null;
-  }, [currentUser?.uid]);
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  useEffect(() => {
+    residentsRef.current = residents;
+  }, [residents]);
+
+  useEffect(() => {
+    rawNotificationsRef.current = rawNotifications;
+  }, [rawNotifications]);
+
+  useEffect(() => {
+    isOnlineRef.current = isOnline;
+  }, [isOnline]);
 
   const assertOnline = useCallback(() => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -992,8 +1010,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [currentUser?.uid, syncMode, applySyncedUserDoc]);
 
   // Cloud-Confirmed Actions (No Silent Failures, Online Required)
-  const addResident = async (resident: Resident, idLogin?: string, password?: string) => {
-    if (currentUser?.role !== 'admin') {
+  const addResident = useCallback(async (resident: Resident, idLogin?: string, password?: string) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat menambahkan warga baru.');
     }
     assertOnline();
@@ -1072,10 +1090,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setSyncingResidentName(null);
     }
-  };
+  }, [assertOnline]);
 
-  const addPayment = async (payment: Payment) => {
-    if (!currentUser) {
+  const addPayment = useCallback(async (payment: Payment) => {
+    if (!currentUserRef.current) {
       throw new Error('Sesi pengguna tidak valid. Silakan login terlebih dahulu.');
     }
     assertOnline();
@@ -1117,10 +1135,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `payments/${payment.id}`);
     }
-  };
+  }, [assertOnline]);
 
-  const updatePayment = async (id: string, updatedData: Partial<Payment>) => {
-    if (currentUser?.role !== 'admin') {
+  const updatePayment = useCallback(async (id: string, updatedData: Partial<Payment>) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat mengubah status pembayaran.');
     }
     assertOnline();
@@ -1133,10 +1151,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `payments/${id}`);
     }
-  };
+  }, [assertOnline]);
 
-  const deletePayment = async (id: string) => {
-    if (currentUser?.role !== 'admin') {
+  const deletePayment = useCallback(async (id: string) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat menghapus data pembayaran.');
     }
     assertOnline();
@@ -1148,10 +1166,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `payments/${id}`);
     }
-  };
+  }, [assertOnline]);
 
-  const addExpense = async (expense: Expense) => {
-    if (currentUser?.role !== 'admin') {
+  const addExpense = useCallback(async (expense: Expense) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat mencatat pengeluaran.');
     }
     assertOnline();
@@ -1164,10 +1182,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `expenses/${cleanExpense.id}`);
     }
-  };
+  }, [assertOnline]);
 
-  const deleteExpense = async (id: string) => {
-    if (currentUser?.role !== 'admin') {
+  const deleteExpense = useCallback(async (id: string) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat menghapus pengeluaran.');
     }
     assertOnline();
@@ -1179,10 +1197,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `expenses/${id}`);
     }
-  };
+  }, [assertOnline]);
 
-  const updateResident = async (id: string, updatedData: Partial<Resident>, newPassword?: string) => {
-    if (currentUser?.role !== 'admin') {
+  const updateResident = useCallback(async (id: string, updatedData: Partial<Resident>, newPassword?: string) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat mengubah data warga.');
     }
     assertOnline();
@@ -1196,7 +1214,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         firestorePayload.block = deleteField();
       }
 
-      const resident = residents.find((r) => r.id === id);
+      const resident = residentsRef.current.find((r) => r.id === id);
       const cleanName = typeof updatedData.name === 'string' ? updatedData.name.trim() : undefined;
 
       const batch = writeBatch(db);
@@ -1229,10 +1247,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `residents/${id}`);
     }
-  };
+  }, [assertOnline]);
 
-  const deleteResident = async (id: string) => {
-    if (currentUser?.role !== 'admin') {
+  const deleteResident = useCallback(async (id: string) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat menghapus data warga.');
     }
     assertOnline();
@@ -1243,7 +1261,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getDocsFromServer(query(collection(db, 'payments'), where('residentId', '==', id))),
       ]);
 
-      const residentData = resDocSnap.exists() ? (resDocSnap.data() as Resident) : residents.find((r) => r.id === id);
+      const residentData = resDocSnap.exists() ? (resDocSnap.data() as Resident) : residentsRef.current.find((r) => r.id === id);
       const refsToDelete = [
         ...(residentData?.userId ? [doc(db, 'users', residentData.userId)] : []),
         doc(db, 'residents', id),
@@ -1264,7 +1282,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `residents/${id}`);
     }
-  };
+  }, [assertOnline]);
 
   const acknowledgeTodayReminder = useCallback(
     (uid?: string) => {
@@ -1298,6 +1316,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ),
     [rawNotifications, currentUser, linkedResidentForUser?.id]
   );
+
+  useEffect(() => {
+    visibleCloudNotificationsRef.current = visibleCloudNotifications;
+  }, [visibleCloudNotifications]);
 
   const notifications = React.useMemo(() => {
     if (!currentUser) return [];
@@ -1392,7 +1414,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [notifications, currentUser?.uid]
   );
 
-  const addNotification = async (
+  const addNotification = useCallback(async (
     title: string,
     message: string,
     targetViewOrOptions?: AppNotification['targetView'] | AddNotificationOptions
@@ -1423,17 +1445,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `notifications/${newNotif.id}`);
     }
-  };
+  }, [assertOnline]);
 
-  const markNotificationRead = async (id: string) => {
-    const uid = currentUser?.uid;
+  const markNotificationRead = useCallback(async (id: string) => {
+    const uid = currentUserRef.current?.uid;
 
     if (id.startsWith('active_unpaid_reminder_') || id.startsWith('active_admin_reminder_')) {
       acknowledgeTodayReminder(uid);
-      if (uid && isOnline) {
+      if (uid && isOnlineRef.current) {
         const now = new Date();
         const monthlyDocId = `reminder_iuran_${now.getFullYear()}_${now.getMonth() + 1}`;
-        const monthlyDoc = rawNotifications.find((n) => n.id === monthlyDocId);
+        const monthlyDoc = rawNotificationsRef.current.find((n) => n.id === monthlyDocId);
         if (monthlyDoc && !isNotificationReadForUser(monthlyDoc, uid)) {
           void updateDoc(doc(db, 'notifications', monthlyDocId), {
             readBy: arrayUnion(uid),
@@ -1470,18 +1492,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `notifications/${id}`);
     }
-  };
+  }, [acknowledgeTodayReminder, assertOnline]);
 
-  const markAllNotificationsRead = async () => {
-    const uid = currentUser?.uid;
+  const markAllNotificationsRead = useCallback(async () => {
+    const uid = currentUserRef.current?.uid;
     acknowledgeTodayReminder(uid);
 
     const now = new Date();
     const monthlyDocId = `reminder_iuran_${now.getFullYear()}_${now.getMonth() + 1}`;
-    const unreadItems = visibleCloudNotifications.filter(
+    const unreadItems = visibleCloudNotificationsRef.current.filter(
       (n) => !isNotificationReadForUser(n, uid)
     );
-    const monthlyDoc = rawNotifications.find((n) => n.id === monthlyDocId);
+    const monthlyDoc = rawNotificationsRef.current.find((n) => n.id === monthlyDocId);
     if (
       monthlyDoc &&
       !isNotificationReadForUser(monthlyDoc, uid) &&
@@ -1518,10 +1540,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, 'notifications');
     }
-  };
+  }, [acknowledgeTodayReminder, assertOnline]);
 
-  const updateBankAccount = async (newBankAccount: BankAccount) => {
-    if (currentUser?.role !== 'admin') {
+  const updateBankAccount = useCallback(async (newBankAccount: BankAccount) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat mengubah rekening pembayaran.');
     }
     assertOnline();
@@ -1533,10 +1555,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'settings/bankAccount');
     }
-  };
+  }, [assertOnline]);
 
-  const updateOrganizationContacts = async (contacts: OrganizationContact[]) => {
-    if (currentUser?.role !== 'admin') {
+  const updateOrganizationContacts = useCallback(async (contacts: OrganizationContact[]) => {
+    if (currentUserRef.current?.role !== 'admin') {
       throw new Error('Hanya Admin yang dapat mengatur kontak penanggung jawab.');
     }
     assertOnline();
@@ -1560,10 +1582,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'settings/organization');
     }
-  };
+  }, [assertOnline]);
 
-  const updateProfilePhoto = async (photoUrl: string | null) => {
-    if (!currentUser) {
+  const updateProfilePhoto = useCallback(async (photoUrl: string | null) => {
+    const activeUser = currentUserRef.current;
+    if (!activeUser) {
       throw new Error('Sesi pengguna tidak ditemukan.');
     }
     assertOnline();
@@ -1572,47 +1595,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const batch = writeBatch(db);
       let resolvedResidentId: string | undefined;
 
-      if (currentUser.role === 'admin') {
+      if (activeUser.role === 'admin') {
         batch.set(
-          doc(db, 'users', currentUser.uid),
+          doc(db, 'users', activeUser.uid),
           {
-            uid: currentUser.uid,
-            email: currentUser.email || 'admin',
-            name: currentUser.name || 'Admin Paguyuban',
+            uid: activeUser.uid,
+            email: activeUser.email || 'admin',
+            name: activeUser.name || 'Admin Paguyuban',
             role: 'admin',
             photoUrl: photoUrl ? photoUrl : deleteField(),
           },
           { merge: true }
         );
       } else {
-        let linkedResident = residents.find(
-          (r) => r.userId === currentUser.uid || r.id === currentUser.residentId
+        const currentResidents = residentsRef.current;
+        let linkedResident = currentResidents.find(
+          (r) => r.userId === activeUser.uid || r.id === activeUser.residentId
         );
 
         if (!linkedResident) {
-          const userSnap = await getDocFromServer(doc(db, 'users', currentUser.uid)).catch(() => null);
+          const userSnap = await getDocFromServer(doc(db, 'users', activeUser.uid)).catch(() => null);
           const serverResidentId = userSnap?.exists()
             ? (userSnap.data()?.residentId as string | undefined)
             : undefined;
           if (serverResidentId) {
-            linkedResident = residents.find((r) => r.id === serverResidentId);
+            linkedResident = currentResidents.find((r) => r.id === serverResidentId);
             resolvedResidentId = serverResidentId;
           }
         }
 
         if (!linkedResident && !resolvedResidentId) {
           const resQuerySnap = await getDocsFromServer(
-            query(collection(db, 'residents'), where('userId', '==', currentUser.uid))
+            query(collection(db, 'residents'), where('userId', '==', activeUser.uid))
           ).catch(() => null);
           if (resQuerySnap && !resQuerySnap.empty) {
             resolvedResidentId = resQuerySnap.docs[0].id;
           }
         }
 
-        resolvedResidentId = linkedResident?.id || resolvedResidentId || currentUser.residentId;
+        resolvedResidentId = linkedResident?.id || resolvedResidentId || activeUser.residentId;
 
         batch.set(
-          doc(db, 'users', currentUser.uid),
+          doc(db, 'users', activeUser.uid),
           {
             photoUrl: photoUrl ? photoUrl : deleteField(),
             ...(resolvedResidentId ? { residentId: resolvedResidentId } : {}),
@@ -1625,7 +1649,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             doc(db, 'residents', resolvedResidentId),
             {
               photoUrl: photoUrl ? photoUrl : deleteField(),
-              userId: currentUser.uid,
+              userId: activeUser.uid,
             },
             { merge: true }
           );
@@ -1635,12 +1659,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await batch.commit();
       await waitForPendingWrites(db);
 
-      if (currentUser.role !== 'admin') {
+      if (activeUser.role !== 'admin') {
         if (resolvedResidentId) {
           setResidents((prev) =>
             prev.map((r) => {
               if (r.id !== resolvedResidentId) return r;
-              const next = { ...r, userId: currentUser.uid };
+              const next = { ...r, userId: activeUser.uid };
               if (photoUrl) {
                 next.photoUrl = photoUrl;
               } else {
@@ -1654,10 +1678,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const nextByUid = { ...prev.byUid };
           const nextByResident = { ...prev.byResidentId };
           if (photoUrl) {
-            nextByUid[currentUser.uid] = photoUrl;
+            nextByUid[activeUser.uid] = photoUrl;
             if (resolvedResidentId) nextByResident[resolvedResidentId] = photoUrl;
           } else {
-            delete nextByUid[currentUser.uid];
+            delete nextByUid[activeUser.uid];
             if (resolvedResidentId) delete nextByResident[resolvedResidentId];
           }
           return { byUid: nextByUid, byResidentId: nextByResident };
@@ -1679,12 +1703,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return next;
       });
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `users/${currentUser.uid}`);
+      handleFirestoreError(err, OperationType.UPDATE, `users/${activeUser.uid}`);
     }
-  };
+  }, [assertOnline, persistSession]);
 
-  const updateOwnPassword = async (newPassword: string) => {
-    if (!currentUser) {
+  const updateOwnPassword = useCallback(async (newPassword: string) => {
+    const activeUser = currentUserRef.current;
+    if (!activeUser) {
       throw new Error('Sesi pengguna tidak ditemukan.');
     }
     if (newPassword.length < 6) {
@@ -1697,21 +1722,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Mark locally before committing so this device stays signed in while other devices log out
       localPasswordUpdateAtRef.current = updatedAt;
 
-      if (currentUser.role === 'admin') {
+      if (activeUser.role === 'admin') {
         await setDoc(
           doc(db, 'users', 'admin_uid'),
           {
             uid: 'admin_uid',
             email: 'admin',
-            name: currentUser.name || 'Admin Paguyuban',
+            name: activeUser.name || 'Admin Paguyuban',
             password: newPassword,
             passwordUpdatedAt: updatedAt,
             role: 'admin',
           },
           { merge: true }
         );
-      } else if (currentUser.uid) {
-        await updateDoc(doc(db, 'users', currentUser.uid), {
+      } else if (activeUser.uid) {
+        await updateDoc(doc(db, 'users', activeUser.uid), {
           password: newPassword,
           passwordUpdatedAt: updatedAt,
         });
@@ -1734,54 +1759,97 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return next;
       });
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `users/${currentUser.uid}`);
+      handleFirestoreError(err, OperationType.UPDATE, `users/${activeUser.uid}`);
     }
-  };
+  }, [assertOnline, persistSession]);
+
+  const contextValue = useMemo<AppContextType>(
+    () => ({
+      currentUser,
+      isLoadingAuth,
+      isOnline,
+      syncMode,
+      isHydratingCloud,
+      isRefreshingCloud,
+      hasCloudHydrated,
+      cloudSyncError,
+      cloudSyncErrorDetail,
+      authNotice,
+      clearAuthNotice,
+      retryCloudSync,
+      refreshCloudNow,
+      signInUser,
+      residents,
+      syncingResidentName,
+      hasPendingResidentSync,
+      payments,
+      notifications,
+      unreadNotificationsCount,
+      expenses,
+      addResident,
+      updateResident,
+      deleteResident,
+      addPayment,
+      updatePayment,
+      deletePayment,
+      addExpense,
+      deleteExpense,
+      signOutUser,
+      addNotification,
+      markNotificationRead,
+      markAllNotificationsRead,
+      bankAccount,
+      updateBankAccount,
+      organizationContacts,
+      updateOrganizationContacts,
+      updateProfilePhoto,
+      updateOwnPassword,
+    }),
+    [
+      currentUser,
+      isLoadingAuth,
+      isOnline,
+      syncMode,
+      isHydratingCloud,
+      isRefreshingCloud,
+      hasCloudHydrated,
+      cloudSyncError,
+      cloudSyncErrorDetail,
+      authNotice,
+      clearAuthNotice,
+      retryCloudSync,
+      refreshCloudNow,
+      signInUser,
+      residents,
+      syncingResidentName,
+      hasPendingResidentSync,
+      payments,
+      notifications,
+      unreadNotificationsCount,
+      expenses,
+      addResident,
+      updateResident,
+      deleteResident,
+      addPayment,
+      updatePayment,
+      deletePayment,
+      addExpense,
+      deleteExpense,
+      signOutUser,
+      addNotification,
+      markNotificationRead,
+      markAllNotificationsRead,
+      bankAccount,
+      updateBankAccount,
+      organizationContacts,
+      updateOrganizationContacts,
+      updateProfilePhoto,
+      updateOwnPassword,
+    ]
+  );
 
   return (
-    <AppContext.Provider
-      value={{
-        currentUser,
-        isLoadingAuth,
-        isOnline,
-        syncMode,
-        isHydratingCloud,
-        isRefreshingCloud,
-        hasCloudHydrated,
-        cloudSyncError,
-        cloudSyncErrorDetail,
-        authNotice,
-        clearAuthNotice,
-        retryCloudSync,
-        refreshCloudNow,
-        signInUser,
-        residents,
-        syncingResidentName,
-        hasPendingResidentSync,
-        payments,
-        notifications,
-        unreadNotificationsCount,
-        expenses,
-        addResident,
-        updateResident,
-        deleteResident,
-        addPayment,
-        updatePayment,
-        deletePayment,
-        addExpense,
-        deleteExpense,
-        signOutUser,
-        addNotification,
-        markNotificationRead,
-        markAllNotificationsRead,
-        bankAccount,
-        updateBankAccount,
-        organizationContacts,
-        updateOrganizationContacts,
-        updateProfilePhoto,
-        updateOwnPassword,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

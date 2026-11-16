@@ -146,6 +146,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToPayments, onCh
   const myCurrentStatus = myCurrentMonthPayment?.status || 'unpaid';
   const isCurrentMonthPaid = myCurrentStatus === 'verified';
 
+  const residentMap = useMemo(
+    () => new Map(residents.map((r) => [r.id, r])),
+    [residents]
+  );
+
   const recentPayments = useMemo(
     () =>
       [...(isResident ? myPayments : payments)]
@@ -524,7 +529,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToPayments, onCh
                     {tabResidentEntries.map(({ resident: resItem, payment, status }) => (
                       <div
                         key={resItem.id}
-                        className="dashboard-card-hover flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-[#18263d]/60 hover:bg-white dark:hover:bg-[#18263d]"
+                        className="perf-list-item dashboard-card-hover flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-[#18263d]/60 hover:bg-white dark:hover:bg-[#18263d]"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 aspect-square rounded-xl bg-[#e8f4fd] dark:bg-[#1b3352] text-[#0088f8] dark:text-[#60b5ff] font-display font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden border border-blue-100 dark:border-blue-400/20">
@@ -533,6 +538,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToPayments, onCh
                                 src={resItem.photoUrl}
                                 alt={resItem.name}
                                 referrerPolicy="no-referrer"
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -685,7 +692,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToPayments, onCh
         <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
           {recentPayments.length > 0 ? (
             recentPayments.map((payment, index) => {
-              const res = residents.find(r => r.id === payment.residentId);
+              const res = residentMap.get(payment.residentId);
               const status = normalizePaymentStatus(payment);
               return (
                 <motion.div
@@ -702,6 +709,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToPayments, onCh
                           src={res.photoUrl}
                           alt={res.name}
                           referrerPolicy="no-referrer"
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                         />
                       ) : (

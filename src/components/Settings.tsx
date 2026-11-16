@@ -522,6 +522,8 @@ export const Settings: React.FC = () => {
                   src={profilePhoto}
                   alt={accountNameDisplay}
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               ) : isAdmin ? (

@@ -25,6 +25,7 @@ import {
   getInitials,
   getResidentPaymentSummary,
   resolveResidentPaymentForMonth,
+  buildYearPaymentLookupMap,
   normalizePaymentStatus,
   translateErrorToIndonesian,
   validateResidentField,
@@ -116,6 +117,11 @@ export const Residents: React.FC = () => {
   const summary = useMemo(
     () => getResidentPaymentSummary(residents, payments, selectedMonth, selectedYear),
     [residents, payments, selectedMonth, selectedYear]
+  );
+
+  const yearPaymentMap = useMemo(
+    () => (viewMode === 'matrix' ? buildYearPaymentLookupMap(payments, selectedYear) : new Map()),
+    [viewMode, payments, selectedYear]
   );
 
   const filteredEntries = useMemo(() => {
@@ -434,22 +440,22 @@ export const Residents: React.FC = () => {
           </p>
         </div>
         {currentUser?.role === 'admin' && (
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsExportModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 bg-white dark:bg-[#18263d] hover:bg-slate-50 dark:hover:bg-[#1e2f4b] text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-2xl font-bold transition-colors shadow-2xs cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
-            >
-              <Download className="w-4 h-4 stroke-[2] text-[#0088f8] dark:text-[#60b5ff]" />
-              <span>Ekspor CSV</span>
-            </button>
+          <div className="flex flex-nowrap items-center gap-2 sm:gap-2.5 shrink-0 max-w-full">
             <button
               type="button"
               onClick={openAddModal}
-              className="inline-flex items-center justify-center gap-2 bg-[#0088f8] hover:bg-[#0070e0] text-white px-5 py-2.5 rounded-2xl font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-[#0088f8] hover:bg-[#0070e0] text-white px-3.5 sm:px-5 py-2.5 rounded-2xl font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
             >
-              <Plus className="w-4 h-4 icon-3d-glyph" />
+              <Plus className="w-4 h-4 icon-3d-glyph shrink-0" />
               <span>Tambah Warga</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-white dark:bg-[#18263d] hover:bg-slate-50 dark:hover:bg-[#1e2f4b] text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-700 px-3.5 sm:px-4 py-2.5 rounded-2xl font-bold transition-colors shadow-2xs cursor-pointer text-xs sm:text-sm min-h-[44px] whitespace-nowrap shrink-0"
+            >
+              <Download className="w-4 h-4 stroke-[2] text-[#0088f8] dark:text-[#60b5ff] shrink-0" />
+              <span>Ekspor Data</span>
             </button>
           </div>
         )}
@@ -724,7 +730,7 @@ export const Residents: React.FC = () => {
                           return (
                             <div
                               key={resident.id}
-                              className={`p-4 rounded-2xl border transition-colors flex flex-col justify-between gap-3.5 ${
+                              className={`perf-list-item p-4 rounded-2xl border transition-colors flex flex-col justify-between gap-3.5 ${
                                 status === 'verified'
                                   ? 'bg-white dark:bg-[#162339]/80 border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-500/40'
                                   : status === 'pending'
@@ -754,6 +760,8 @@ export const Residents: React.FC = () => {
                                 src={resident.photoUrl}
                                 alt={resident.name}
                                 referrerPolicy="no-referrer"
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                               />
                             </button>
@@ -923,12 +931,12 @@ export const Residents: React.FC = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredEntries.length > 0 ? (
                   filteredEntries.map(({ resident }) => (
-                    <tr key={resident.id} className="hover:bg-slate-50/80 dark:hover:bg-[#18263d]/70 transition-colors group">
+                    <tr key={resident.id} className="perf-table-row hover:bg-slate-50/80 dark:hover:bg-[#18263d]/70 transition-colors group">
                       <td className="px-4 py-3 sticky left-0 bg-white dark:bg-[#111c2e] group-hover:bg-slate-50 dark:group-hover:bg-[#18263d] z-10 border-r border-slate-100 dark:border-slate-800 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] dark:shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)] transition-colors max-w-[210px]">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 aspect-square rounded-xl bg-[#e8f4fd] dark:bg-[#152843] text-[#0088f8] dark:text-[#60b5ff] font-display font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
                             {resident.photoUrl ? (
-                              <img src={resident.photoUrl} alt={resident.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                              <img src={resident.photoUrl} alt={resident.name} referrerPolicy="no-referrer" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                             ) : (
                               <span>{getInitials(resident.name)}</span>
                             )}
@@ -944,7 +952,7 @@ export const Residents: React.FC = () => {
 
                       {Array.from({ length: 12 }, (_, i) => {
                         const month = i + 1;
-                        const paymentThisMonth = resolveResidentPaymentForMonth(payments, resident.id, month, selectedYear);
+                        const paymentThisMonth = yearPaymentMap.get(`${resident.id}_${month}`);
                         const status = paymentThisMonth ? normalizePaymentStatus(paymentThisMonth) : 'unpaid';
 
                         return (
@@ -1471,6 +1479,8 @@ export const Residents: React.FC = () => {
                 src={previewResidentPhoto.url}
                 alt={previewResidentPhoto.name}
                 referrerPolicy="no-referrer"
+                loading="lazy"
+                decoding="async"
                 className="max-h-[60vh] w-full rounded-2xl object-contain"
               />
             </div>
@@ -1482,8 +1492,8 @@ export const Residents: React.FC = () => {
         mode="scoped"
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        title="Ekspor Daftar Warga ke CSV"
-        subtitle="Pilih cakupan daftar warga dan status iuran yang ingin diunduh"
+        title="Ekspor Data"
+        subtitle="Daftar & status iuran warga · pilih cakupan data"
         filteredOption={{
           label: 'Sesuai Filter & Mode Aktif',
           description: activeFilterSummary,

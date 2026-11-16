@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   AlertTriangle,
@@ -63,7 +63,7 @@ const DATASET_ICONS: Record<CsvHubDataset, typeof CreditCard> = {
   expenses: Receipt,
 };
 
-export const CsvExportModal: React.FC<CsvExportModalProps> = (props) => {
+export const CsvExportModal: React.FC<CsvExportModalProps> = memo((props) => {
   const { isOpen, onClose, title, subtitle } = props;
   const shouldReduceMotion = useReducedMotion();
 
@@ -145,7 +145,7 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = (props) => {
       onClose();
     } catch (err: unknown) {
       setErrorMsg(
-        translateErrorToIndonesian(err, 'Gagal mengekspor data ke CSV. Silakan coba lagi.')
+        translateErrorToIndonesian(err, 'Gagal mengekspor data. Silakan coba lagi.')
       );
     }
   };
@@ -184,7 +184,7 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = (props) => {
             type="button"
             onClick={onClose}
             className="icon-btn-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/80"
-            aria-label="Tutup dialog ekspor CSV"
+            aria-label="Tutup dialog Ekspor Data"
           >
             <X className="w-5 h-5 stroke-[2]" />
           </button>
@@ -346,4 +346,5 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = (props) => {
       </motion.div>
     </div>
   );
-};
+});
+CsvExportModal.displayName = 'CsvExportModal';

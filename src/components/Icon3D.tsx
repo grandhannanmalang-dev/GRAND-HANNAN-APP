@@ -54,7 +54,7 @@ const SIZE_CLASSES: Record<Icon3DSize, { box: string; icon: string }> = {
   xl: { box: 'w-14 h-14 aspect-square rounded-2xl', icon: 'w-8 h-8 stroke-[2]' },
 };
 
-export const Icon3D: React.FC<Icon3DProps> = ({
+export const Icon3D: React.FC<Icon3DProps> = React.memo(({
   icon: Icon,
   variant = 'softBlue',
   size = 'md',
@@ -70,4 +70,6 @@ export const Icon3D: React.FC<Icon3DProps> = ({
       <Icon className={`relative z-10 ${sizeSpec.icon} ${iconClassName}`} />
     </div>
   );
-};
+});
+
+Icon3D.displayName = 'Icon3D';

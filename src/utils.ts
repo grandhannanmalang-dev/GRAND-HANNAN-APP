@@ -1,20 +1,25 @@
 import { Resident, Payment, BankAccount, AppNotification, AppView, UserRole, AppUser } from './types';
 
+const idrFormatter = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
 export const formatIDR = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return idrFormatter.format(amount);
 };
 
+const MONTH_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+] as const;
+
 export const getMonthName = (month: number) => {
-  const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
-  return months[month - 1] || '';
+  return MONTH_NAMES[month - 1] || '';
 };
 
 export const generateId = () => {
@@ -34,7 +39,13 @@ export const safeFormatDate = (
   const ms = safeTimeMs(dateInput);
   if (!ms) return '-';
   try {
-    return new Date(ms).toLocaleDateString('id-ID', options);
+    const cacheKey = `${options.day || ''}|${options.month || ''}|${options.year || ''}`;
+    let formatter = dateFormatterCache.get(cacheKey);
+    if (!formatter) {
+      formatter = new Intl.DateTimeFormat('id-ID', options);
+      dateFormatterCache.set(cacheKey, formatter);
+    }
+    return formatter.format(new Date(ms));
   } catch {
     return '-';
   }
@@ -143,6 +154,12 @@ export const normalizePaymentStatus = (payment?: Payment | null): 'verified' | '
   return 'tertunda';
 };
 
+const STATUS_PRIORITY: Record<'verified' | 'pending' | 'tertunda', number> = {
+  verified: 3,
+  pending: 2,
+  tertunda: 1,
+};
+
 /**
  * Resolves the authoritative payment record for a resident in a specific month/year.
  * Priority: verified > pending > tertunda.
@@ -153,15 +170,50 @@ export const resolveResidentPaymentForMonth = (
   month: number,
   year: number
 ): Payment | undefined => {
-  const matches = payments.filter(
-    p => p.residentId === residentId && Number(p.month) === Number(month) && Number(p.year) === Number(year)
-  );
-  if (matches.length === 0) return undefined;
-  const verified = matches.find(p => normalizePaymentStatus(p) === 'verified');
-  if (verified) return verified;
-  const pending = matches.find(p => normalizePaymentStatus(p) === 'pending');
-  if (pending) return pending;
-  return matches[0];
+  const targetMonth = Number(month);
+  const targetYear = Number(year);
+  let best: Payment | undefined;
+  let bestPriority = 0;
+
+  for (const p of payments) {
+    if (
+      p.residentId === residentId &&
+      Number(p.month) === targetMonth &&
+      Number(p.year) === targetYear
+    ) {
+      const priority = STATUS_PRIORITY[normalizePaymentStatus(p)];
+      if (priority > bestPriority) {
+        best = p;
+        bestPriority = priority;
+        if (bestPriority === 3) break;
+      }
+    }
+  }
+  return best;
+};
+
+/**
+ * Builds an O(1) lookup map of authoritative payments for a given year keyed by `${residentId}_${month}`.
+ */
+export const buildYearPaymentLookupMap = (
+  payments: Payment[],
+  year: number
+): Map<string, Payment> => {
+  const targetYear = Number(year);
+  const map = new Map<string, Payment>();
+  const priorityMap = new Map<string, number>();
+
+  for (const p of payments) {
+    if (Number(p.year) !== targetYear) continue;
+    const key = `${p.residentId}_${Number(p.month)}`;
+    const priority = STATUS_PRIORITY[normalizePaymentStatus(p)];
+    const prevPriority = priorityMap.get(key) || 0;
+    if (priority > prevPriority) {
+      map.set(key, p);
+      priorityMap.set(key, priority);
+    }
+  }
+  return map;
 };
 
 export interface ResidentMonthStatus {
@@ -176,19 +228,55 @@ export const getResidentPaymentSummary = (
   month: number,
   year: number
 ) => {
-  const entries: ResidentMonthStatus[] = residents.map((resident) => {
-    const payment = resolveResidentPaymentForMonth(payments, resident.id, month, year);
+  const targetMonth = Number(month);
+  const targetYear = Number(year);
+
+  const monthPaymentByResident = new Map<string, Payment>();
+  const priorityByResident = new Map<string, number>();
+
+  for (const p of payments) {
+    if (Number(p.month) !== targetMonth || Number(p.year) !== targetYear) continue;
+    const priority = STATUS_PRIORITY[normalizePaymentStatus(p)];
+    const prevPriority = priorityByResident.get(p.residentId) || 0;
+    if (priority > prevPriority) {
+      monthPaymentByResident.set(p.residentId, p);
+      priorityByResident.set(p.residentId, priority);
+    }
+  }
+
+  const entries: ResidentMonthStatus[] = [];
+  const paid: ResidentMonthStatus[] = [];
+  const pending: ResidentMonthStatus[] = [];
+  const tertunda: ResidentMonthStatus[] = [];
+  const unpaidOnly: ResidentMonthStatus[] = [];
+  const notPaidYet: ResidentMonthStatus[] = [];
+
+  for (const resident of residents) {
+    const payment = monthPaymentByResident.get(resident.id);
     const status: EffectivePaymentStatus = payment ? normalizePaymentStatus(payment) : 'unpaid';
-    return { resident, payment, status };
-  });
+    const entry: ResidentMonthStatus = { resident, payment, status };
+    entries.push(entry);
+
+    if (status === 'verified') {
+      paid.push(entry);
+    } else if (status === 'pending') {
+      pending.push(entry);
+    } else if (status === 'tertunda') {
+      tertunda.push(entry);
+      notPaidYet.push(entry);
+    } else {
+      unpaidOnly.push(entry);
+      notPaidYet.push(entry);
+    }
+  }
 
   return {
     entries,
-    paid: entries.filter(e => e.status === 'verified'),
-    pending: entries.filter(e => e.status === 'pending'),
-    tertunda: entries.filter(e => e.status === 'tertunda'),
-    unpaidOnly: entries.filter(e => e.status === 'unpaid'),
-    notPaidYet: entries.filter(e => e.status === 'unpaid' || e.status === 'tertunda'),
+    paid,
+    pending,
+    tertunda,
+    unpaidOnly,
+    notPaidYet,
   };
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { memo, useState, useRef, useEffect, useMemo } from 'react';
 import { LogOut, Bell, ShieldCheck, Camera, Trash2, X, AlertTriangle, Loader2, Sun, Moon, Monitor, Check, CheckCheck, ArrowUpRight } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useAppContext } from '../AppContext';
@@ -12,7 +12,7 @@ interface HeaderProps {
   onChangeView?: (view: ViewType) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onChangeView }) => {
+export const Header: React.FC<HeaderProps> = memo(({ onChangeView }) => {
   const {
     currentUser,
     signOutUser,
@@ -37,9 +37,13 @@ export const Header: React.FC<HeaderProps> = ({ onChangeView }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
-  const currentResident = currentUser?.role === 'resident'
-    ? residents.find(r => r.userId === currentUser?.uid || r.id === currentUser?.residentId)
-    : null;
+  const currentResident = useMemo(
+    () =>
+      currentUser?.role === 'resident'
+        ? residents.find(r => r.userId === currentUser?.uid || r.id === currentUser?.residentId)
+        : null,
+    [currentUser?.role, currentUser?.uid, currentUser?.residentId, residents]
+  );
 
   const displayName = currentUser?.role === 'admin'
     ? (currentUser.name || 'Admin Paguyuban')
@@ -208,6 +212,7 @@ export const Header: React.FC<HeaderProps> = ({ onChangeView }) => {
                     src={profilePhoto}
                     alt={displayName}
                     referrerPolicy="no-referrer"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : currentUser?.role === 'admin' ? (
@@ -514,6 +519,8 @@ export const Header: React.FC<HeaderProps> = ({ onChangeView }) => {
                     src={profilePhoto}
                     alt={displayName}
                     referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : currentUser?.role === 'admin' ? (
@@ -588,4 +595,5 @@ export const Header: React.FC<HeaderProps> = ({ onChangeView }) => {
       </AnimatePresence>
     </>
   );
-};
+});
+Header.displayName = 'Header';

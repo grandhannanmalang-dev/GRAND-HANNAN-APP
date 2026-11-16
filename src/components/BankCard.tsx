@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Copy, Check, CheckCheck, Landmark } from 'lucide-react';
 import { BankAccount } from '../types';
@@ -12,7 +12,7 @@ interface BankCardProps {
   className?: string;
 }
 
-export const BankCard: React.FC<BankCardProps> = ({
+export const BankCard: React.FC<BankCardProps> = memo(({
   bankAccount,
   nominal,
   variant = 'card',
@@ -207,4 +207,5 @@ export const BankCard: React.FC<BankCardProps> = ({
       </p>
     </div>
   );
-};
+});
+BankCard.displayName = 'BankCard';

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Home, Users, CreditCard, BarChart3, Building2, Settings } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -16,11 +16,12 @@ export type ViewType = AppView;
 interface SidebarProps {
   currentView: ViewType;
   onChangeView: (view: ViewType) => void;
+  onPrefetchView?: (view: ViewType) => void;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = memo(({ currentView, onChangeView, onPrefetchView, isOpen, onClose }) => {
   const { currentUser, payments } = useAppContext();
   const pendingCount = useMemo(
     () => payments.filter(p => p.status === 'pending' || p.status === 'tertunda').length,
@@ -89,6 +90,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isO
                   transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
                   key={item.id}
                   type="button"
+                  onMouseEnter={() => onPrefetchView?.(item.id)}
+                  onFocus={() => onPrefetchView?.(item.id)}
                   onClick={() => {
                     onChangeView(item.id);
                     onClose();
@@ -136,4 +139,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isO
       </aside>
     </>
   );
-};
+});
+Sidebar.displayName = 'Sidebar';
