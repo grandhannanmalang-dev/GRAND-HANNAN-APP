@@ -1,0 +1,141 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role and credentials for cross-device authentication",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "resident"] },
+        "residentId": { "type": "string" },
+        "name": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "passwordUpdatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Resident": {
+      "title": "Resident",
+      "description": "Resident details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "propertyType": { "type": "string", "enum": ["Perumahan", "Ruko"] },
+        "houseNumber": { "type": "string" },
+        "block": { "type": "string" },
+        "phone": { "type": "string" },
+        "joinDate": { "type": "string" },
+        "userId": { "type": "string" },
+        "monthlyDues": { "type": "number" },
+        "photoUrl": { "type": "string" }
+      },
+      "required": ["id", "name", "propertyType", "houseNumber", "joinDate"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment record for iuran",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "residentId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "month": { "type": "number" },
+        "year": { "type": "number" },
+        "proofOfPayment": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "verified", "tertunda"] }
+      },
+      "required": ["id", "residentId", "amount", "date", "month", "year"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Expense record for community funds",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "month": { "type": "number" },
+        "year": { "type": "number" },
+        "proofPhoto": { "type": "string" }
+      },
+      "required": ["id", "amount", "description", "date", "month", "year"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Community announcements and alerts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "date": { "type": "string" },
+        "read": { "type": "boolean" },
+        "readBy": {
+          "type": "array",
+          "description": "User UIDs who have read this notification"
+        },
+        "targetView": {
+          "type": "string",
+          "enum": ["dashboard", "residents", "payments", "reports", "settings"]
+        },
+        "audience": {
+          "type": "string",
+          "enum": ["all", "admin", "resident"]
+        },
+        "recipientResidentId": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": ["payment", "reminder", "system"]
+        }
+      },
+      "required": ["id", "title", "message", "date", "read"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Community settings including bank account details and one-time cloud seed metadata",
+      "type": "object",
+      "properties": {
+        "bankName": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "accountName": { "type": "string" },
+        "initialSeedCompleted": { "type": "boolean" },
+        "seededAt": { "type": "string" },
+        "contacts": {
+          "type": "array",
+          "description": "List of community person-in-charge and organization structure contacts"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User accounts and credentials"
+    },
+    "/residents/{residentId}": {
+      "schema": { "$ref": "#/entities/Resident" },
+      "description": "Residents of Grand Hannan"
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Iuran payments made by residents"
+    },
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Community operational expenses"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "System announcements"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/Setting" },
+      "description": "Bank account and system settings"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Full-bleed Flat 2D Blue Canvas (fills 100% of square/squircle/adaptive mask) -->
+  <rect x="0" y="0" width="512" height="512" fill="#007be8" />
+
+  <!-- Flat 2D Modern House (scaled up for full visual presence) -->
+  <!-- Chimney -->
+  <rect x="334" y="80" width="44" height="82" rx="8" fill="#dbeafe" />
+  <!-- Main Wall -->
+  <path d="M88 214 L256 76 L424 214 L424 388 L88 388 Z" fill="#ffffff" />
+  <!-- Roof Overhang -->
+  <path d="M42 224 L256 48 L470 224 L438 260 L256 110 L74 260 Z" fill="#e0f0fe" />
+  <!-- Crisp Flat Roof Trim -->
+  <path d="M58 232 L256 70 L454 232" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Door & Warm Windows -->
+  <rect x="220" y="250" width="72" height="114" rx="12" fill="#0070e0" />
+  <circle cx="276" cy="308" r="5.5" fill="#fbbf24" />
+  <rect x="126" y="250" width="60" height="60" rx="10" fill="#fbbf24" />
+  <rect x="326" y="250" width="60" height="60" rx="10" fill="#fbbf24" />
+  <!-- Window Panes -->
+  <line x1="156" y1="250" x2="156" y2="310" stroke="#ffffff" stroke-width="5" />
+  <line x1="126" y1="280" x2="186" y2="280" stroke="#ffffff" stroke-width="5" />
+  <line x1="356" y1="250" x2="356" y2="310" stroke="#ffffff" stroke-width="5" />
+  <line x1="326" y1="280" x2="386" y2="280" stroke="#ffffff" stroke-width="5" />
+
+  <!-- Flat Yellow Ribbon Banner -->
+  <polygon points="24,378 96,378 96,458 24,458 50,418" fill="#d97706" />
+  <polygon points="488,378 416,378 416,458 488,458 462,418" fill="#d97706" />
+  <polygon points="68,378 96,356 96,458" fill="#b45309" />
+  <polygon points="444,378 416,356 416,458" fill="#b45309" />
+
+  <rect x="68" y="352" width="376" height="88" rx="14" fill="#fbbf24" />
+  <rect x="73" y="357" width="366" height="78" rx="11" fill="none" stroke="#fef3c7" stroke-width="3" />
+
+  <!-- Brand Label -->
+  <text x="256" y="409" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, Arial, sans-serif" font-weight="800" font-size="41" fill="#0f172a" letter-spacing="0.4">Grand Hannan</text>
+</svg>

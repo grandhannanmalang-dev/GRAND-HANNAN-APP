@@ -1,0 +1,338 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --color-livin-blue: #0088f8;
+  --color-livin-blue-dark: #0070e0;
+  --color-livin-blue-light: #e8f4fd;
+  --color-livin-gold: #f5a623;
+  --color-livin-bg: #edf5fc;
+}
+
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+body {
+  font-family: var(--font-sans);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: manipulation;
+  background-color: #edf5fc;
+  color: #1e293b;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+.dark body {
+  background-color: #0b1220;
+  color: #f1f5f9;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+/* Custom scrollbar for mobile feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+@layer base {
+  button:not(:disabled) {
+    transition-property: transform, scale, translate, opacity, background-color, border-color, color, box-shadow, filter;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  button:not(:disabled):not([data-no-rebound]):active {
+    scale: 0.96;
+  }
+}
+
+@layer components {
+  .nav-menu-item {
+    @apply relative w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-display font-semibold text-sm tracking-tight leading-snug transition-colors duration-200 cursor-pointer min-h-[48px];
+  }
+
+  .mobile-nav-grid {
+    @apply max-w-lg mx-auto px-2.5 py-2.5 grid grid-cols-5 gap-1.5 sm:gap-2 items-stretch;
+  }
+
+  .mobile-nav-item {
+    @apply w-full h-14 px-1 py-1.5 rounded-2xl flex flex-col items-center justify-center gap-1 text-white cursor-pointer relative overflow-visible;
+  }
+
+  .icon-btn-md {
+    @apply w-10 h-10 aspect-square rounded-xl inline-flex items-center justify-center shrink-0 transition-colors cursor-pointer;
+  }
+
+  .icon-btn-lg {
+    @apply w-11 h-11 aspect-square rounded-2xl inline-flex items-center justify-center shrink-0 transition-colors cursor-pointer;
+  }
+
+  .btn-primary-action {
+    @apply min-h-[44px] px-5 py-2.5 rounded-2xl inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer;
+  }
+
+  .btn-secondary-action {
+    @apply min-h-[40px] px-3.5 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 text-xs font-bold whitespace-nowrap transition-colors cursor-pointer;
+  }
+}
+
+/* iOS Liquid Glass 3D effect (used strictly on top header actions & mobile bottom nav) */
+.icon-3d-glyph,
+.icon-3d-glyph-soft {
+  filter: none;
+}
+
+.btn-3d-floating,
+.btn-3d-violet,
+.btn-3d-emerald,
+.btn-3d-amber,
+.btn-3d-slate,
+.btn-3d-rose {
+  -webkit-backdrop-filter: blur(14px) saturate(165%);
+  backdrop-filter: blur(14px) saturate(165%);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  transition-property: transform, scale, translate, opacity, background-color, border-color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .btn-3d-floating,
+.dark .btn-3d-violet,
+.dark .btn-3d-emerald,
+.dark .btn-3d-amber,
+.dark .btn-3d-slate,
+.dark .btn-3d-rose {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.btn-3d-floating:not(:disabled):active,
+.btn-3d-violet:not(:disabled):active,
+.btn-3d-emerald:not(:disabled):active,
+.btn-3d-amber:not(:disabled):active,
+.btn-3d-slate:not(:disabled):active,
+.btn-3d-rose:not(:disabled):active {
+  translate: 0 1px;
+  scale: 0.96;
+}
+
+.btn-3d-floating {
+  background: linear-gradient(180deg, rgba(38, 164, 255, 0.84) 0%, rgba(0, 122, 232, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 -2px 0 rgba(0, 58, 130, 0.3),
+    0 4px 12px -2px rgba(0, 112, 224, 0.28);
+}
+
+.btn-3d-floating:hover {
+  background: linear-gradient(180deg, rgba(56, 174, 255, 0.9) 0%, rgba(0, 132, 245, 0.95) 100%);
+}
+
+.btn-3d-floating:not(:disabled):active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -1px 0 rgba(0, 58, 130, 0.36),
+    0 2px 6px -1px rgba(0, 112, 224, 0.24);
+}
+
+.btn-3d-violet {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.84) 0%, rgba(109, 40, 217, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(59, 16, 124, 0.32),
+    0 4px 12px -2px rgba(109, 40, 217, 0.26);
+}
+
+.btn-3d-violet:hover {
+  background: linear-gradient(180deg, rgba(152, 110, 250, 0.9) 0%, rgba(124, 58, 237, 0.95) 100%);
+}
+
+.btn-3d-violet:not(:disabled):active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(59, 16, 124, 0.38),
+    0 2px 6px -1px rgba(109, 40, 217, 0.22);
+}
+
+.btn-3d-emerald {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.84) 0%, rgba(5, 150, 105, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(4, 86, 62, 0.3),
+    0 4px 12px -2px rgba(5, 150, 105, 0.26);
+}
+
+.btn-3d-emerald:hover {
+  background: linear-gradient(180deg, rgba(32, 198, 142, 0.9) 0%, rgba(16, 165, 118, 0.95) 100%);
+}
+
+.btn-3d-emerald:not(:disabled):active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(4, 86, 62, 0.36),
+    0 2px 6px -1px rgba(5, 150, 105, 0.22);
+}
+
+.btn-3d-amber {
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.86) 0%, rgba(217, 82, 14, 0.93) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.44),
+    inset 0 -2px 0 rgba(124, 45, 18, 0.32),
+    0 4px 12px -2px rgba(234, 88, 12, 0.26);
+}
+
+.btn-3d-amber:hover {
+  background: linear-gradient(180deg, rgba(251, 130, 42, 0.92) 0%, rgba(234, 88, 12, 0.96) 100%);
+}
+
+.btn-3d-amber:not(:disabled):active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(124, 45, 18, 0.38),
+    0 2px 6px -1px rgba(234, 88, 12, 0.22);
+}
+
+.btn-3d-slate {
+  background: linear-gradient(180deg, rgba(100, 116, 139, 0.84) 0%, rgba(51, 65, 85, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(15, 23, 42, 0.34),
+    0 4px 12px -2px rgba(30, 41, 59, 0.24);
+}
+
+.btn-3d-slate:hover {
+  background: linear-gradient(180deg, rgba(114, 130, 154, 0.9) 0%, rgba(71, 85, 105, 0.95) 100%);
+}
+
+.btn-3d-slate:not(:disabled):active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.38),
+    0 2px 6px -1px rgba(30, 41, 59, 0.2);
+}
+
+.btn-3d-rose {
+  background: linear-gradient(180deg, rgba(244, 63, 94, 0.85) 0%, rgba(205, 23, 62, 0.93) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.44),
+    inset 0 -2px 0 rgba(136, 19, 55, 0.34),
+    0 4px 12px -2px rgba(225, 29, 72, 0.26);
+}
+
+.btn-3d-rose:hover {
+  background: linear-gradient(180deg, rgba(251, 80, 110, 0.9) 0%, rgba(225, 29, 72, 0.96) 100%);
+}
+
+.btn-3d-rose:not(:disabled):active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(136, 19, 55, 0.4),
+    0 2px 6px -1px rgba(225, 29, 72, 0.22);
+}
+
+/* Smooth responsive hover transition on Dashboard cards */
+.dashboard-card-hover {
+  transition:
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 340ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 220ms ease,
+    background-color 220ms ease;
+}
+
+@media (hover: hover) {
+  .dashboard-card-hover:hover {
+    transform: scale(1.012);
+    box-shadow: 0 10px 24px -10px rgba(15, 23, 42, 0.14), 0 4px 10px -6px rgba(15, 23, 42, 0.08);
+  }
+
+  .dark .dashboard-card-hover:hover {
+    box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.45), 0 4px 10px -6px rgba(0, 0, 0, 0.32);
+  }
+}
+
+/* Subtle GPU-composited pulsing ring for empty payment proof dropzone */
+@keyframes upload-ring-pulse {
+  0%, 100% {
+    opacity: 0.22;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(1.015);
+  }
+}
+
+.animate-upload-ring-pulse {
+  animation: upload-ring-pulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-upload-ring-pulse {
+    animation: none;
+    opacity: 0.45;
+  }
+
+  .dashboard-card-hover,
+  .dashboard-card-hover:hover {
+    transition: none;
+    transform: none;
+  }
+
+  button:not(:disabled):not([data-no-rebound]):active,
+  .btn-3d-floating:not(:disabled):hover,
+  .btn-3d-violet:not(:disabled):hover,
+  .btn-3d-emerald:not(:disabled):hover,
+  .btn-3d-amber:not(:disabled):hover,
+  .btn-3d-slate:not(:disabled):hover,
+  .btn-3d-rose:not(:disabled):hover,
+  .btn-3d-floating:not(:disabled):active,
+  .btn-3d-violet:not(:disabled):active,
+  .btn-3d-emerald:not(:disabled):active,
+  .btn-3d-amber:not(:disabled):active,
+  .btn-3d-slate:not(:disabled):active,
+  .btn-3d-rose:not(:disabled):active {
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+

@@ -1,0 +1,141 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidOptionalString(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role'])
+        && data.keys().hasOnly(['uid', 'email', 'password', 'role', 'residentId', 'name', 'photoUrl', 'passwordUpdatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128
+        && data.email is string && data.email.size() >= 1 && data.email.size() <= 128
+        && data.role in ['admin', 'resident']
+        && isValidOptionalString(data, 'password', 128)
+        && isValidOptionalString(data, 'residentId', 128)
+        && isValidOptionalString(data, 'name', 128)
+        && isValidOptionalString(data, 'photoUrl', 1000000)
+        && isValidOptionalString(data, 'passwordUpdatedAt', 64);
+    }
+
+    function isValidResident(data) {
+      return data.keys().hasAll(['id', 'name', 'propertyType', 'houseNumber', 'joinDate'])
+        && data.keys().hasOnly(['id', 'name', 'propertyType', 'houseNumber', 'block', 'phone', 'joinDate', 'userId', 'monthlyDues', 'photoUrl'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 128
+        && data.propertyType in ['Perumahan', 'Ruko']
+        && data.houseNumber is string && data.houseNumber.size() >= 1 && data.houseNumber.size() <= 32
+        && data.joinDate is string && data.joinDate.size() >= 1 && data.joinDate.size() <= 64
+        && isValidOptionalString(data, 'block', 32)
+        && isValidOptionalString(data, 'phone', 32)
+        && isValidOptionalString(data, 'userId', 128)
+        && (!('monthlyDues' in data) || (data.monthlyDues is number && data.monthlyDues >= 0 && data.monthlyDues <= 1000000000))
+        && isValidOptionalString(data, 'photoUrl', 1000000);
+    }
+
+    function isValidPayment(data) {
+      return data.keys().hasAll(['id', 'residentId', 'amount', 'date', 'month', 'year'])
+        && data.keys().hasOnly(['id', 'residentId', 'amount', 'date', 'month', 'year', 'proofOfPayment', 'status'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.residentId is string && data.residentId.size() >= 1 && data.residentId.size() <= 128
+        && data.amount is number && data.amount >= 0 && data.amount <= 1000000000
+        && data.date is string && data.date.size() >= 1 && data.date.size() <= 64
+        && data.month is number && data.month >= 1 && data.month <= 12
+        && data.year is number && data.year >= 2000 && data.year <= 2100
+        && isValidOptionalString(data, 'proofOfPayment', 1000000)
+        && (!('status' in data) || data.status in ['pending', 'verified', 'tertunda']);
+    }
+
+    function isValidExpense(data) {
+      return data.keys().hasAll(['id', 'amount', 'description', 'date', 'month', 'year'])
+        && data.keys().hasOnly(['id', 'amount', 'description', 'date', 'month', 'year', 'proofPhoto'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.amount is number && data.amount >= 0 && data.amount <= 1000000000
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 500
+        && data.date is string && data.date.size() >= 1 && data.date.size() <= 64
+        && data.month is number && data.month >= 1 && data.month <= 12
+        && data.year is number && data.year >= 2000 && data.year <= 2100
+        && isValidOptionalString(data, 'proofPhoto', 1000000);
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['id', 'title', 'message', 'date', 'read'])
+        && data.keys().hasOnly(['id', 'title', 'message', 'date', 'read', 'readBy', 'targetView', 'audience', 'recipientResidentId', 'category'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.message is string && data.message.size() >= 1 && data.message.size() <= 2000
+        && data.date is string && data.date.size() >= 1 && data.date.size() <= 64
+        && data.read is bool
+        && (!('readBy' in data) || (data.readBy is list && data.readBy.size() <= 500 && (data.readBy.size() == 0 || data.readBy[0] is string)))
+        && (!('targetView' in data) || data.targetView in ['dashboard', 'residents', 'payments', 'reports', 'settings'])
+        && (!('audience' in data) || data.audience in ['all', 'admin', 'resident'])
+        && isValidOptionalString(data, 'recipientResidentId', 128)
+        && (!('category' in data) || data.category in ['payment', 'reminder', 'system']);
+    }
+
+    function isValidSetting(data) {
+      return data.keys().hasOnly(['bankName', 'accountNumber', 'accountName', 'initialSeedCompleted', 'seededAt', 'contacts', 'updatedAt'])
+        && isValidOptionalString(data, 'bankName', 64)
+        && isValidOptionalString(data, 'accountNumber', 64)
+        && isValidOptionalString(data, 'accountName', 128)
+        && (!('initialSeedCompleted' in data) || data.initialSeedCompleted is bool)
+        && isValidOptionalString(data, 'seededAt', 64)
+        && isValidOptionalString(data, 'updatedAt', 64)
+        && (!('contacts' in data) || (data.contacts is list && data.contacts.size() <= 50 && (data.contacts.size() == 0 || data.contacts[0] is map)));
+    }
+
+    // Grand Hannan Community Management Rules (Custom ID/Password Auth & Real-Time Cross-Device Sync)
+    match /users/{userId} {
+      allow list: if true;
+      allow get, delete: if isValidId(userId);
+      allow create, update: if isValidId(userId) && isValidUser(incoming());
+    }
+
+    match /residents/{residentId} {
+      allow list: if true;
+      allow get, delete: if isValidId(residentId);
+      allow create, update: if isValidId(residentId) && isValidResident(incoming());
+    }
+
+    match /payments/{paymentId} {
+      allow list: if true;
+      allow get, delete: if isValidId(paymentId);
+      allow create, update: if isValidId(paymentId) && isValidPayment(incoming());
+    }
+
+    match /expenses/{expenseId} {
+      allow list: if true;
+      allow get, delete: if isValidId(expenseId);
+      allow create, update: if isValidId(expenseId) && isValidExpense(incoming());
+    }
+
+    match /notifications/{notificationId} {
+      allow list: if true;
+      allow get, delete: if isValidId(notificationId);
+      allow create, update: if isValidId(notificationId) && isValidNotification(incoming());
+    }
+
+    match /settings/{settingId} {
+      allow list: if true;
+      allow get, delete: if isValidId(settingId);
+      allow create, update: if isValidId(settingId) && isValidSetting(incoming());
+    }
+
+    match /test/{testId} {
+      allow get: if isValidId(testId);
+    }
+  }
+}
