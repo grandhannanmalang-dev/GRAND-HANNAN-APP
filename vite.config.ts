@@ -17,10 +17,11 @@ export default defineConfig(() => {
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'favicon-32x32.png'],
         manifest: {
           id: '/',
+          lang: 'id',
           name: 'Grand Hannan',
           short_name: 'Grand Hannan',
           description: 'Sistem Manajemen Keuangan Warga Grand Hannan.',
-          theme_color: '#0088f8',
+          theme_color: '#edf5fc',
           background_color: '#edf5fc',
           display: 'standalone',
           start_url: '/',
